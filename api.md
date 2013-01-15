@@ -15,3 +15,17 @@ tags
 ----
 
 retrieve all file names of files tagged with one or multiple tags
+
+***
+
+internals
+---------
+
+data per file
++ name(s)
++ size
++ mime
++ [ machine identifier ]
+
+data per tag
+- history (needed for unsynchronized removal of duplicates)
