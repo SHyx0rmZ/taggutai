@@ -10,6 +10,32 @@ STORAGE = config["paths"]["storage"] or "storage"
 TAGS = config["paths"]["tags"] or "tags"
 TRACKING = config["paths"]["tracking"] or "meta"
 
+class Util
+    class << self
+        def clean_path path
+            array = path.kind_of? Array
+
+            path = path.split "/" unless array
+
+            clean = []
+
+            path.each do |directory|
+                case directory
+                when ".."
+                    clean.delete_at clean.size - 1
+                when "."
+                else
+                    clean << directory
+                end
+            end
+
+            clean = clean.join "/" unless array
+
+            clean
+        end
+    end
+end
+
 class Tag
     class << self
         def getall directory
