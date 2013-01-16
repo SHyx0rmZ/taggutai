@@ -18,14 +18,21 @@ class Util
             path = path.split "/" unless array
 
             clean = []
+            root = true
 
             path.each do |directory|
                 case directory
                 when ".."
-                    clean.delete_at clean.size - 1
+                    if root
+                        clean << directory
+                    else
+                        clean.delete_at clean.size - 1
+                    end
                 when "."
                 else
                     clean << directory
+
+                    root = false
                 end
             end
 
