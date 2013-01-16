@@ -33,6 +33,23 @@ class Util
 
             clean
         end
+
+        def relative_path path, root
+            path = Util.clean_path path.split "/"
+            root = Util.clean_path root.split "/"
+            difference = 0
+
+            path.each_index do |index|
+                unless path[index].eql? root[index]
+                    difference = index
+
+                    break
+                end
+            end
+
+            path.shift difference
+            path.join "/"
+        end
     end
 end
 
