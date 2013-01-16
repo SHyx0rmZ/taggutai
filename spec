@@ -17,3 +17,15 @@ describe "Util" do
         end
     end
 end
+
+describe "Tag" do
+    describe "limit" do
+        it 'returns [ "a", "de" ] for [ "a", "bc", "de", "fg" ], /^(a|b|d.*)$/' do
+            Tag.limit([ "a", "bc", "de", "fg" ], /^(a|b|d.*)$/).should == [ "a", "de" ]
+        end
+
+        it 'returns [ "a", "fg" ] for [ "a", "bc", "de", "fg" ], "a", "fg"' do
+            Tag.limit([ "a", "bc", "de", "fg" ], "a", "fg").should == [ "a", "fg" ]
+        end
+    end
+end

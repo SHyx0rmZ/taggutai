@@ -81,5 +81,21 @@ class Tag
 
             tags
         end
+
+        def limit tags, *search
+            array = []
+
+            search.each do |regex|
+                regex = Regexp.new "^(#{regex}$)" unless regex.kind_of? Regexp
+
+                tags.each do |tag|
+                    if tag[regex]
+                        array << tag
+                    end
+                end
+            end
+
+            array.uniq
+        end
     end
 end
