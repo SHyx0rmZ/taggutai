@@ -62,7 +62,7 @@ end
 
 class Tag
     class << self
-        def getall directory
+        def getall directory = "#{Dir.pwd}/#{TAGS}"
             tags = []
 
             Dir.entries(directory, { :encoding => "utf-8" }).each do |entry|
