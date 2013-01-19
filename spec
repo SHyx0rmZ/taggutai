@@ -2,6 +2,7 @@
 # coding: utf-8
 
 require "rspec"
+require "fileutils"
 require_relative "class.rb"
 
 describe "Util" do
@@ -19,6 +20,20 @@ describe "Util" do
 end
 
 describe "Tag" do
+    describe "getall" do
+        before do
+            FileUtils.mkdir_p [ "a", "b", "c/d" ].map { |dir| "tagtest/" + dir }
+        end
+
+        it 'returns [ "a", "b", "c", "c/d" ]' do
+            Tag.getall("tagtest").should == [ "a", "b", "c", "c/d" ]
+        end
+
+        after do
+            FileUtils.rm_r "tagtest"
+        end
+    end
+
     describe "limit" do
         it 'returns [ "a", "de" ] for [ "a", "bc", "de", "fg" ], /^(a|b|d.*)$/' do
             Tag.limit([ "a", "bc", "de", "fg" ], /^(a|b|d.*)$/).should == [ "a", "de" ]
