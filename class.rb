@@ -79,7 +79,7 @@ class Tag
                 end
             end
 
-            tags
+            tags.sort
         end
 
         def limit tags, *search
