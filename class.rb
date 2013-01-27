@@ -169,5 +169,37 @@ class Storage
                 end
             end
         end
+
+        def merge duplicate, copies, directory = "#{Dir.pwd}"
+            hash = Digest::SHA1.new
+            names = []
+
+            copies.each do |copy|
+                file = File.open "#{directory}/#{TRACKING}/#{copy}", "rb"
+
+                names += file.lines.to_a
+
+                file.close
+            end
+
+            names.uniq!
+            names.sort!
+
+            p names
+            names.each do |name|
+                hash.update name
+            end
+
+            file = File.open "#{directory}/#{duplicate}#{hash.hexdigest}", "wb"
+
+            names.each do |name|
+                file.puts name
+            end
+
+            file.close
+
+            # TODO: update tags
+            # TODO: remove duplicate storage files
+        end
     end
 end
