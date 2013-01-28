@@ -154,7 +154,7 @@ class Storage
                         if File.exists? "#{root}/../#{STORAGE}/#{name}"
                             File.delete entry
 
-                            duplicate = true
+                            puts "stored duplicate #{name} (#{target})"
 
                             next
                         end
@@ -163,7 +163,7 @@ class Storage
                     File.rename entry, "#{root}/../#{STORAGE}/#{name}"
                     File.open("#{root}/../#{TAGS}/untagged/#{name}", "w").close
 
-                    puts "stored#{duplicate ? " duplicate " : " "}#{name} (#{target})"
+                    puts "stored #{name} (#{target})"
                 end
             end
         end
