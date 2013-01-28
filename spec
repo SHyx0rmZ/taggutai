@@ -44,3 +44,29 @@ describe "Tag" do
         end
     end
 end
+
+describe "Storage" do
+    before do
+            Storage.stub! :puts
+            Storage.stub! :printf
+    end
+
+    describe "import" do
+        before do
+            FileUtils.mkdir_p "importtest"
+            FileUtils.touch "importtest/a"
+            FileUtils.touch "importtest/b"
+        end
+
+        it 'creates meta files for imported files' do
+            # FIXME use separate tracking directory for test
+            Storage.import "importtest"
+            File.exists?("meta/da39a3ee5e6b4b0d3255bfef95601890afd8070986f7e437faa5a7fce15d1ddcb9eaeaea377667b8").should == true
+            File.exists?("meta/da39a3ee5e6b4b0d3255bfef95601890afd80709e9d71f5ee7c92d6dc9e92ffdad17b8bd49418f98").should == true
+        end
+
+        after do
+            FileUtils.rm_r "importtest"
+        end
+    end
+end
