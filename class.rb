@@ -179,38 +179,6 @@ class Storage
             File.rename path, "#{STORAGE}/#{id[0...40]}"
             FileUtils.touch "#{TAGS}/untagged/#{name}"
         end
-
-        def merge duplicate, copies, directory = "#{WORKING}"
-            hash = Digest::SHA1.new
-            names = []
-
-            copies.each do |copy|
-                file = File.open "#{TRACKING}/#{copy[0...40]}/#{copy[40...80]}", "rb"
-
-                names += file.lines.to_a
-
-                file.close
-            end
-
-            names.uniq!
-            names.sort!
-
-            p names
-            names.each do |name|
-                hash.update name
-            end
-
-            file = File.open "#{directory}/#{duplicate}#{hash.hexdigest}", 'wb'
-
-            names.each do |name|
-                file.puts name
-            end
-
-            file.close
-
-            # TODO: update tags
-            # TODO: remove duplicate storage files
-        end
     end
 end
 
@@ -230,11 +198,51 @@ class Meta
 
             FileUtils.mkdir_p "#{TRACKING}/#{dirname}" unless Dir.exists? "#{TRACKING}/#{dirname}"
 
-            raise DuplicateFileException if File.exists? "#{TRACKING}/#{dirname}/#{basename}"
+            raise DuplicateFileException if Meta.has? id
 
             file = File.open "#{TRACKING}/#{dirname}/#{basename}", 'wb'
             file.puts filename
             file.close
         end
+
+        def merge id
+            hash = Digest::SHA1.new
+            names = []
+
+            raise FileNotFoundException unless Meta.has? id
+
+            Dir.entries("#{TRACKING}/#{id[0...40]}", { :encoding => 'utf-8' }).each do |entry|
+                next if [ '..', '.' ].include? entry
+
+                file = File.open "#{TRACKING}/#{id[0...40]}/#{entry}", 'rb'
+                names += file.lines.to_a
+                file.close
+            end
+
+            names.uniq!
+            names.sort!
+
+            names.each do |name|
+                hash.update name
+            end
+
+            file = File.open "#{TRACKING}/#{id[0...40]}/#{hash.hexdigest}", 'wb'
+
+            names.each do |name|
+                file.puts name
+            end
+
+            file.close
+
+            Dir.entries("#{TRACKING}/#{id[0...40]}", { :encoding => 'utf-8' }).each do |entry|
+                next if [ '..', '.', hash.hexdigest ].include? entry
+
+                FileUtils.rm "#{TRACKING}/#{id[0...40]}/#{entry}"
+            end
+        end
+
+
+
+
     end
 end
