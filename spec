@@ -72,5 +72,13 @@ describe 'Storage' do
             File.exists?("#{TRACKING}/da39a3ee5e6b4b0d3255bfef95601890afd80709e9d71f5ee7c92d6dc9e92ffdad17b8bd49418f98").should == true
         end
 
+        it 'stores duplicate files' do
+            time = File.mtime "#{STORAGE}/da39a3ee5e6b4b0d3255bfef95601890afd8070986f7e437faa5a7fce15d1ddcb9eaeaea377667b8"
+            sleep 1
+            FileUtils.touch "#{IMPORT}/a"
+            Storage.import
+            File.exists?("#{STORAGE}/da39a3ee5e6b4b0d3255bfef95601890afd8070986f7e437faa5a7fce15d1ddcb9eaeaea377667b8").should == true
+            File.mtime("#{STORAGE}/da39a3ee5e6b4b0d3255bfef95601890afd8070986f7e437faa5a7fce15d1ddcb9eaeaea377667b8").should == time
+        end
     end
 end
