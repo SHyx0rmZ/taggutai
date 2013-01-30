@@ -184,7 +184,7 @@ class Storage
             raise DuplicateFileException if Storage.has? id
 
             File.rename path, "#{STORAGE}/#{id[0...40]}"
-            FileUtils.touch "#{TAGS}/untagged/#{name}"
+            FileUtils.touch "#{TAGS}/untagged/#{id[0...40]}"
         end
     end
 end
