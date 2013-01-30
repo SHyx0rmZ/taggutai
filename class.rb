@@ -10,13 +10,13 @@ path = (ARGV[0] and File.exists?(ARGV[0])) ? ARGV[0] : 'config.yml'
 config = YAML::load_file path
 config[:paths] = {} unless config[:paths]
 
-STORAGE = config['paths']['storage'] or 'storage'
-TAGS = config['paths']['tags'] or 'tags'
-TRACKING = config['paths']['tracking'] or 'meta'
-IMPORT = config['paths']['import'] or 'import'
 WORKING = (config['paths']['working'] or Dir.pwd)
+STORAGE = "#{WORKING}/" + (config['paths']['storage'] or 'storage')
+TAGS = "#{WORKING}/" + (config['paths']['tags'] or 'tags')
+TRACKING = "#{WORKING}/" + (config['paths']['tracking'] or 'meta')
+IMPORT = "#{WORKING}/" + (config['paths']['import'] or 'import')
 
-FileUtils.mkdir_p [ STORAGE, TAGS, TRACKING, IMPORT ].map { |dir| "#{WORKING}/#{dir}" }
+FileUtils.mkdir_p [ STORAGE, TAGS, TRACKING, IMPORT ]
 
 class Util
     class << self
@@ -70,7 +70,7 @@ end
 
 class Tag
     class << self
-        def getall directory = "#{WORKING}/#{TAGS}"
+        def getall directory = TAGS
             tags = []
 
             Dir.entries(directory, { :encoding => 'utf-8' }).each do |entry|
@@ -110,7 +110,7 @@ end
 
 class Storage
     class << self
-        def import directory = "#{WORKING}/#{IMPORT}", root = directory
+        def import directory = IMPORT, root = directory
             entries = Dir.entries(directory, { :encoding => 'utf-8' })
             total = entries.size - 2
             index = 0
@@ -145,7 +145,7 @@ class Storage
                     file.close
 
                     name = hash.hexdigest + Digest::SHA1.new.update(target).hexdigest
-                    link = "#{root}/../#{TRACKING}/#{name}"
+                    link = "#{TRACKING}/#{name}"
                     duplicate = false
 
                     unless File.exists? link
@@ -154,7 +154,7 @@ class Storage
                         file.puts target
                         file.close
                     else
-                        if File.exists? "#{root}/../#{STORAGE}/#{name}"
+                        if File.exists? "#{STORAGE}/#{name}"
                             File.delete entry
 
                             puts "stored duplicate #{name} (#{target})"
@@ -163,8 +163,8 @@ class Storage
                         end
                     end
 
-                    File.rename entry, "#{root}/../#{STORAGE}/#{name}"
-                    File.open("#{root}/../#{TAGS}/untagged/#{name}", "w").close
+                    File.rename entry, "#{STORAGE}/#{name}"
+                    File.open("#{TAGS}/untagged/#{name}", "w").close
 
                     puts "stored #{name} (#{target})"
                 end
@@ -176,7 +176,7 @@ class Storage
             names = []
 
             copies.each do |copy|
-                file = File.open "#{directory}/#{TRACKING}/#{copy}", "rb"
+                file = File.open "#{TRACKING}/#{copy}", "rb"
 
                 names += file.lines.to_a
 
