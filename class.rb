@@ -168,6 +168,12 @@ class Storage
                     end
                 end
             end
+
+            unless OPTIONS['nomerge']
+                Meta.duplicates.each do |dupe|
+                    Meta.merge dupe
+                end
+            end
         end
 
         def has? id
