@@ -61,12 +61,9 @@ describe 'Storage' do
     end
 
     describe 'import' do
-        before do
+        it 'creates meta files for imported files' do
             FileUtils.touch "#{IMPORT}/a"
             FileUtils.touch "#{IMPORT}/b"
-        end
-
-        it 'creates meta files for imported files' do
             Storage.import
             File.exists?("#{TRACKING}/da39a3ee5e6b4b0d3255bfef95601890afd8070986f7e437faa5a7fce15d1ddcb9eaeaea377667b8").should == true
             File.exists?("#{TRACKING}/da39a3ee5e6b4b0d3255bfef95601890afd80709e9d71f5ee7c92d6dc9e92ffdad17b8bd49418f98").should == true
