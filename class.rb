@@ -14,8 +14,9 @@ STORAGE = config['paths']['storage'] or 'storage'
 TAGS = config['paths']['tags'] or 'tags'
 TRACKING = config['paths']['tracking'] or 'meta'
 IMPORT = config['paths']['import'] or 'import'
+WORKING = config['paths']['working'] or Dir.pwd
 
-FileUtils.mkdir_p [ STORAGE, TAGS, TRACKING, IMPORT ].map { |dir| "#{Dir.pwd}/#{dir}" }
+FileUtils.mkdir_p [ STORAGE, TAGS, TRACKING, IMPORT ].map { |dir| "#{WORKING}/#{dir}" }
 
 class Util
     class << self
@@ -69,7 +70,7 @@ end
 
 class Tag
     class << self
-        def getall directory = "#{Dir.pwd}/#{TAGS}"
+        def getall directory = "#{WORKING}/#{TAGS}"
             tags = []
 
             Dir.entries(directory, { :encoding => 'utf-8' }).each do |entry|
@@ -109,7 +110,7 @@ end
 
 class Storage
     class << self
-        def import directory = "#{Dir.pwd}/#{IMPORT}", root = directory
+        def import directory = "#{WORKING}/#{IMPORT}", root = directory
             entries = Dir.entries(directory, { :encoding => 'utf-8' })
             total = entries.size - 2
             index = 0
@@ -170,7 +171,7 @@ class Storage
             end
         end
 
-        def merge duplicate, copies, directory = "#{Dir.pwd}"
+        def merge duplicate, copies, directory = "#{WORKING}"
             hash = Digest::SHA1.new
             names = []
 
