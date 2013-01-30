@@ -16,7 +16,7 @@ TAGS = "#{WORKING}/" + (config['paths']['tags'] or 'tags')
 TRACKING = "#{WORKING}/" + (config['paths']['tracking'] or 'meta')
 IMPORT = "#{WORKING}/" + (config['paths']['import'] or 'import')
 
-FileUtils.mkdir_p [ STORAGE, TAGS, TRACKING, IMPORT ]
+FileUtils.mkdir_p [ STORAGE, TAGS, TRACKING, IMPORT, "#{TAGS}/untagged" ]
 
 class Util
     class << self
