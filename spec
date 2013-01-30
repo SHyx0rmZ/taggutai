@@ -3,7 +3,22 @@
 
 require 'rspec'
 require 'fileutils'
-require_relative 'class.rb'
+require 'yaml'
+
+RSpec.configure do |config|
+    config.before :suite do
+        FileUtils.rm_r 'tmp.spec' if Dir.exists? 'tmp.spec'
+
+        file = File.open 'config.spec.yml', 'wb'
+
+        file.puts({ 'paths' => { 'working' => 'tmp.spec' } }.to_yaml)
+        file.close
+
+        ARGV[0] = 'config.spec.yml'
+
+        require_relative 'class.rb'
+    end
+end
 
 describe 'Util' do
     describe 'clean_path' do
@@ -46,27 +61,28 @@ describe 'Tag' do
 end
 
 describe 'Storage' do
-    before do
+    before :each do
             Storage.stub! :puts
             Storage.stub! :printf
     end
 
     describe 'import' do
-        before do
-            FileUtils.mkdir_p 'importtest'
-            FileUtils.touch 'importtest/a'
-            FileUtils.touch 'importtest/b'
-        end
-
         it 'creates meta files for imported files' do
-            # FIXME use separate tracking directory for test
-            Storage.import 'importtest'
-            File.exists?('meta/da39a3ee5e6b4b0d3255bfef95601890afd8070986f7e437faa5a7fce15d1ddcb9eaeaea377667b8').should == true
-            File.exists?('meta/da39a3ee5e6b4b0d3255bfef95601890afd80709e9d71f5ee7c92d6dc9e92ffdad17b8bd49418f98').should == true
+            FileUtils.touch "#{IMPORT}/a"
+            FileUtils.touch "#{IMPORT}/b"
+            Storage.import
+            File.exists?("#{TRACKING}/da39a3ee5e6b4b0d3255bfef95601890afd80709/86f7e437faa5a7fce15d1ddcb9eaeaea377667b8").should == true
+            File.exists?("#{TRACKING}/da39a3ee5e6b4b0d3255bfef95601890afd80709/e9d71f5ee7c92d6dc9e92ffdad17b8bd49418f98").should == true
+            File.exists?("#{STORAGE}/da39a3ee5e6b4b0d3255bfef95601890afd80709").should == true
         end
 
-        after do
-            FileUtils.rm_r 'importtest'
+        it 'stores duplicate files' do
+            time = File.mtime "#{STORAGE}/da39a3ee5e6b4b0d3255bfef95601890afd80709"
+            sleep 1
+            FileUtils.touch "#{IMPORT}/a"
+            Storage.import
+            File.exists?("#{STORAGE}/da39a3ee5e6b4b0d3255bfef95601890afd80709").should == true
+            File.mtime("#{STORAGE}/da39a3ee5e6b4b0d3255bfef95601890afd80709").should == time
         end
     end
 end
