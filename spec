@@ -5,14 +5,22 @@ require 'rspec'
 require 'fileutils'
 require 'yaml'
 
-file = File.open 'config.spec.yml', 'wb'
+RSpec.configure do |config|
+    config.before :suite do
+        file = File.open 'config.spec.yml', 'wb'
 
-file.puts({ 'paths' => { 'working' => 'tmp.spec' } }.to_yaml)
-file.close
+        file.puts({ 'paths' => { 'working' => 'tmp.spec' } }.to_yaml)
+        file.close
 
-ARGV[0] = 'config.spec.yml'
+        ARGV[0] = 'config.spec.yml'
 
-require_relative 'class.rb'
+        require_relative 'class.rb'
+    end
+
+    config.after :suite do
+        FileUtils.rm_r WORKING
+    end
+end
 
 describe 'Util' do
     describe 'clean_path' do
