@@ -7,6 +7,8 @@ require 'yaml'
 
 RSpec.configure do |config|
     config.before :suite do
+        FileUtils.rm_r 'tmp.spec' if Dir.exists? 'tmp.spec'
+
         file = File.open 'config.spec.yml', 'wb'
 
         file.puts({ 'paths' => { 'working' => 'tmp.spec' } }.to_yaml)
@@ -15,10 +17,6 @@ RSpec.configure do |config|
         ARGV[0] = 'config.spec.yml'
 
         require_relative 'class.rb'
-    end
-
-    config.after :suite do
-        FileUtils.rm_r WORKING
     end
 end
 
