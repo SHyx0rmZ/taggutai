@@ -14,7 +14,7 @@ STORAGE = config['paths']['storage'] or 'storage'
 TAGS = config['paths']['tags'] or 'tags'
 TRACKING = config['paths']['tracking'] or 'meta'
 IMPORT = config['paths']['import'] or 'import'
-WORKING = config['paths']['working'] or Dir.pwd
+WORKING = (config['paths']['working'] or Dir.pwd)
 
 FileUtils.mkdir_p [ STORAGE, TAGS, TRACKING, IMPORT ].map { |dir| "#{WORKING}/#{dir}" }
 
