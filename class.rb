@@ -175,7 +175,7 @@ class Storage
             names = []
 
             copies.each do |copy|
-                file = File.open "#{directory}/#{TRACKING}/#{copy}", "rb"
+                file = File.open "#{directory}/#{TRACKING}/#{copy}", 'rb'
 
                 names += file.lines.to_a
 
@@ -190,7 +190,7 @@ class Storage
                 hash.update name
             end
 
-            file = File.open "#{directory}/#{duplicate}#{hash.hexdigest}", "wb"
+            file = File.open "#{directory}/#{duplicate}#{hash.hexdigest}", 'wb'
 
             names.each do |name|
                 file.puts name
