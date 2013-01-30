@@ -15,6 +15,7 @@ STORAGE = "#{WORKING}/" + (config['paths']['storage'] or 'storage')
 TAGS = "#{WORKING}/" + (config['paths']['tags'] or 'tags')
 TRACKING = "#{WORKING}/" + (config['paths']['tracking'] or 'meta')
 IMPORT = "#{WORKING}/" + (config['paths']['import'] or 'import')
+OPTIONS = (config['options'] or {})
 
 FileUtils.mkdir_p [ STORAGE, TAGS, TRACKING, IMPORT, "#{TAGS}/untagged" ]
 

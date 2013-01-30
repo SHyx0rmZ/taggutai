@@ -11,7 +11,7 @@ RSpec.configure do |config|
 
         file = File.open 'config.spec.yml', 'wb'
 
-        file.puts({ 'paths' => { 'working' => 'tmp.spec' } }.to_yaml)
+        file.puts({ 'paths' => { 'working' => 'tmp.spec' }, 'options' => { 'nomerge' => true } }.to_yaml)
         file.close
 
         ARGV[0] = 'config.spec.yml'
