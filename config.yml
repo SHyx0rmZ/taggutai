@@ -1,0 +1,5 @@
+paths:
+    storage: storage
+    tags: tags
+    tracking: meta
+    import: import
