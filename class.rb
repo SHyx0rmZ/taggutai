@@ -21,6 +21,9 @@ FileUtils.mkdir_p [ STORAGE, TAGS, TRACKING, IMPORT, "#{TAGS}/untagged" ]
 class DuplicateFileException < Exception
 end
 
+class FileNotFoundException < Exception
+end
+
 class Util
     class << self
         def clean_path path
