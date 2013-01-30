@@ -18,6 +18,9 @@ IMPORT = "#{WORKING}/" + (config['paths']['import'] or 'import')
 
 FileUtils.mkdir_p [ STORAGE, TAGS, TRACKING, IMPORT, "#{TAGS}/untagged" ]
 
+class DuplicateFileException < Exception
+end
+
 class Util
     class << self
         def clean_path path
