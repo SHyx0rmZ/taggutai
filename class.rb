@@ -112,6 +112,11 @@ class Tag
 
             array.uniq
         end
+
+        def create id, tag
+            FileUtils.mkdir_p "#{TAGS}/#{tag}"
+            FileUtils.touch "#{TAGS}/#{tag}/#{id[0...40]}"
+        end
     end
 end
 
@@ -156,6 +161,7 @@ class Storage
                     duplicate = false
 
                     Meta.create name, target unless Meta.has? name
+                    Tag.create name, target
 
                     if Storage.has? name
                         File.delete entry
