@@ -151,27 +151,30 @@ class Storage
                     link = "#{TRACKING}/#{name}"
                     duplicate = false
 
-                    unless File.exists? link
-                        file = File.open link, 'wb'
+                    Meta.create name, target unless Meta.has? name
 
-                        file.puts target
-                        file.close
+                    if Storage.has? name
+                        File.delete entry
+
+                        puts "stored duplicate #{name} (#{target})"
                     else
-                        if File.exists? "#{STORAGE}/#{name}"
-                            File.delete entry
+                        Storage.store name, entry
 
-                            puts "stored duplicate #{name} (#{target})"
-
-                            next
-                        end
+                        puts "stored #{name} (#{target})"
                     end
-
-                    File.rename entry, "#{STORAGE}/#{name}"
-                    File.open("#{TAGS}/untagged/#{name}", "w").close
-
-                    puts "stored #{name} (#{target})"
                 end
             end
+        end
+
+        def has? id
+            File.exists? "#{STORAGE}/#{id[0...40]}"
+        end
+
+        def store id, path
+            raise DuplicateFileException if Storage.has? id
+
+            File.rename path, "#{STORAGE}/#{id[0...40]}"
+            FileUtils.touch "#{TAGS}/untagged/#{name}"
         end
 
         def merge duplicate, copies, directory = "#{WORKING}"
@@ -204,6 +207,31 @@ class Storage
 
             # TODO: update tags
             # TODO: remove duplicate storage files
+        end
+    end
+end
+
+class Meta
+    class << self
+        def has? id
+            result = true
+            result = false unless Dir.exists? "#{TRACKING}/#{id[0...40]}"
+            result = false unless File.exists? "#{TRACKING}/#{id[0...40]}/#{id[40...80]}"
+            result
+
+        end
+
+        def create id, filename
+            dirname = id[0...40]
+            basename = id[40...80]
+
+            FileUtils.mkdir_p "#{TRACKING}/#{dirname}" unless Dir.exists? "#{TRACKING}/#{dirname}"
+
+            raise DuplicateFileException if File.exists? "#{TRACKING}/#{dirname}/#{basename}"
+
+            file = File.open "#{TRACKING}/#{dirname}/#{basename}", 'wb'
+            file.puts filename
+            file.close
         end
     end
 end
