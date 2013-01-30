@@ -10,12 +10,20 @@ path = (ARGV[0] and File.exists?(ARGV[0])) ? ARGV[0] : 'config.yml'
 config = YAML::load_file path
 config[:paths] = {} unless config[:paths]
 
-STORAGE = (config['paths']['storage'] or 'storage')
-TAGS = (config['paths']['tags'] or 'tags')
-TRACKING = (config['paths']['tracking'] or 'meta')
-IMPORT = (config['paths']['import'] or 'import')
+WORKING = (config['paths']['working'] or Dir.pwd)
+STORAGE = "#{WORKING}/" + (config['paths']['storage'] or 'storage')
+TAGS = "#{WORKING}/" + (config['paths']['tags'] or 'tags')
+TRACKING = "#{WORKING}/" + (config['paths']['tracking'] or 'meta')
+IMPORT = "#{WORKING}/" + (config['paths']['import'] or 'import')
+OPTIONS = (config['options'] or {})
 
-FileUtils.mkdir_p [ STORAGE, TAGS, TRACKING, IMPORT ].map { |dir| "#{Dir.pwd}/#{dir}" }
+FileUtils.mkdir_p [ STORAGE, TAGS, TRACKING, IMPORT, "#{TAGS}/untagged" ]
+
+class DuplicateFileException < Exception
+end
+
+class FileNotFoundException < Exception
+end
 
 class Util
     class << self
@@ -69,7 +77,7 @@ end
 
 class Tag
     class << self
-        def getall directory = "#{Dir.pwd}/#{TAGS}"
+        def getall directory = TAGS
             tags = []
 
             Dir.entries(directory, { :encoding => 'utf-8' }).each do |entry|
@@ -109,7 +117,7 @@ end
 
 class Storage
     class << self
-        def import directory = "#{Dir.pwd}/#{IMPORT}", root = directory
+        def import directory = IMPORT, root = directory
             entries = Dir.entries(directory, { :encoding => 'utf-8' })
             total = entries.size - 2
             index = 0
@@ -144,30 +152,112 @@ class Storage
                     file.close
 
                     name = hash.hexdigest + Digest::SHA1.new.update(target).hexdigest
-                    link = "#{root}/../#{TRACKING}/#{name}"
+                    link = "#{TRACKING}/#{name}"
                     duplicate = false
 
-                    unless File.exists? link
-                        file = File.open link, 'wb'
+                    Meta.create name, target unless Meta.has? name
 
-                        file.puts target
-                        file.close
+                    if Storage.has? name
+                        File.delete entry
+
+                        puts "stored duplicate #{name} (#{target})"
                     else
-                        if File.exists? "#{root}/../#{STORAGE}/#{name}"
-                            File.delete entry
+                        Storage.store name, entry
 
-                            puts "stored duplicate #{name} (#{target})"
-
-                            next
-                        end
+                        puts "stored #{name} (#{target})"
                     end
-
-                    File.rename entry, "#{root}/../#{STORAGE}/#{name}"
-                    File.open("#{root}/../#{TAGS}/untagged/#{name}", "w").close
-
-                    puts "stored #{name} (#{target})"
                 end
             end
+
+            unless OPTIONS['nomerge']
+                Meta.duplicates.each do |dupe|
+                    Meta.merge dupe
+                end
+            end
+        end
+
+        def has? id
+            File.exists? "#{STORAGE}/#{id[0...40]}"
+        end
+
+        def store id, path
+            raise DuplicateFileException if Storage.has? id
+
+            File.rename path, "#{STORAGE}/#{id[0...40]}"
+            FileUtils.touch "#{TAGS}/untagged/#{name}"
+        end
+    end
+end
+
+class Meta
+    class << self
+        def has? id
+            result = true
+            result = false unless Dir.exists? "#{TRACKING}/#{id[0...40]}"
+            result = false unless File.exists? "#{TRACKING}/#{id[0...40]}/#{id[40...80]}"
+            result
+
+        end
+
+        def create id, filename
+            dirname = id[0...40]
+            basename = id[40...80]
+
+            FileUtils.mkdir_p "#{TRACKING}/#{dirname}" unless Dir.exists? "#{TRACKING}/#{dirname}"
+
+            raise DuplicateFileException if Meta.has? id
+
+            file = File.open "#{TRACKING}/#{dirname}/#{basename}", 'wb'
+            file.puts filename
+            file.close
+        end
+
+        def merge id
+            hash = Digest::SHA1.new
+            names = []
+
+            raise FileNotFoundException unless Meta.has? id
+
+            Dir.entries("#{TRACKING}/#{id[0...40]}", { :encoding => 'utf-8' }).each do |entry|
+                next if [ '..', '.' ].include? entry
+
+                file = File.open "#{TRACKING}/#{id[0...40]}/#{entry}", 'rb'
+                names += file.lines.to_a
+                file.close
+            end
+
+            names.uniq!
+            names.sort!
+
+            names.each do |name|
+                hash.update name
+            end
+
+            file = File.open "#{TRACKING}/#{id[0...40]}/#{hash.hexdigest}", 'wb'
+
+            names.each do |name|
+                file.puts name
+            end
+
+            file.close
+
+            Dir.entries("#{TRACKING}/#{id[0...40]}", { :encoding => 'utf-8' }).each do |entry|
+                next if [ '..', '.', hash.hexdigest ].include? entry
+
+                FileUtils.rm "#{TRACKING}/#{id[0...40]}/#{entry}"
+            end
+        end
+
+        def duplicates
+            duplicates = []
+
+            Dir.entries(TRACKING, { :encoding => 'utf-8' }).each do |file|
+                next if [ '..', '.' ].include? file
+
+                duplicates << file unless Dir.entries("#{TRACKING}/#{file}", { :encoding => 'utf-8' }).size.eql? 3
+            end
+
+            duplicates
         end
     end
 end
