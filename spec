@@ -55,7 +55,7 @@ describe 'Tag' do
 end
 
 describe 'Storage' do
-    before :all do
+    before :each do
             Storage.stub! :puts
             Storage.stub! :printf
     end
