@@ -1,19 +1,19 @@
 #!/usr/bin/env ruby
 # coding: utf-8
 
-require "yaml"
-require "digest/sha1"
-require "fileutils"
+require 'yaml'
+require 'digest/sha1'
+require 'fileutils'
 
-path = (ARGV[0] and File.exists?(ARGV[0])) ? ARGV[0] : "config.yml"
+path = (ARGV[0] and File.exists?(ARGV[0])) ? ARGV[0] : 'config.yml'
 
 config = YAML::load_file path
 config[:paths] = {} unless config[:paths]
 
-STORAGE = config["paths"]["storage"] or "storage"
-TAGS = config["paths"]["tags"] or "tags"
-TRACKING = config["paths"]["tracking"] or "meta"
-IMPORT = config["paths"]["import"] or "import"
+STORAGE = config['paths']['storage'] or 'storage'
+TAGS = config['paths']['tags'] or 'tags'
+TRACKING = config['paths']['tracking'] or 'meta'
+IMPORT = config['paths']['import'] or 'import'
 
 FileUtils.mkdir_p [ STORAGE, TAGS, TRACKING, IMPORT ].map { |dir| "#{Dir.pwd}/#{dir}" }
 
@@ -22,20 +22,20 @@ class Util
         def clean_path path
             array = path.kind_of? Array
 
-            path = path.split "/" unless array
+            path = path.split '/' unless array
 
             clean = []
             root = true
 
             path.each do |directory|
                 case directory
-                when ".."
+                when '..'
                     if root
                         clean << directory
                     else
                         clean.delete_at clean.size - 1
                     end
-                when "."
+                when '.'
                 else
                     clean << directory
 
@@ -43,14 +43,14 @@ class Util
                 end
             end
 
-            clean = clean.join "/" unless array
+            clean = clean.join '/' unless array
 
             clean
         end
 
         def relative_path path, root
-            path = Util.clean_path path.split "/"
-            root = Util.clean_path root.split "/"
+            path = Util.clean_path path.split '/'
+            root = Util.clean_path root.split '/'
             difference = 0
 
             path.each_index do |index|
@@ -62,7 +62,7 @@ class Util
             end
 
             path.shift difference
-            path.join "/"
+            path.join '/'
         end
     end
 end
@@ -72,8 +72,8 @@ class Tag
         def getall directory = "#{Dir.pwd}/#{TAGS}"
             tags = []
 
-            Dir.entries(directory, { :encoding => "utf-8" }).each do |entry|
-                next if [ "..", "." ].include? entry
+            Dir.entries(directory, { :encoding => 'utf-8' }).each do |entry|
+                next if [ '..', '.' ].include? entry
 
                 if File.directory? "#{directory}/#{entry}"
                     tags << entry
@@ -110,12 +110,12 @@ end
 class Storage
     class << self
         def import directory = "#{Dir.pwd}/#{IMPORT}", root = directory
-            entries = Dir.entries(directory, { :encoding => "utf-8" })
+            entries = Dir.entries(directory, { :encoding => 'utf-8' })
             total = entries.size - 2
             index = 0
 
             entries.each do |entry|
-                next if [ "..", "." ].include? entry
+                next if [ '..', '.' ].include? entry
 
                 index += 1
                 entry = "#{directory}/#{entry}"
@@ -125,14 +125,14 @@ class Storage
                 if File.directory? entry
                     Storage.import entry, root
 
-                    if (Dir.entries(entry) - [ "..", "." ]).size.eql? 0
+                    if (Dir.entries(entry) - [ '..', '.' ]).size.eql? 0
                         Dir.delete entry
                     end
                 end
 
                 if File.file? entry
                     hash = Digest::SHA1.new
-                    file = File.open entry, "rb"
+                    file = File.open entry, 'rb'
                     target = Util.relative_path entry, root
 
                     until file.eof?
@@ -148,7 +148,7 @@ class Storage
                     duplicate = false
 
                     unless File.exists? link
-                        file = File.open link, "wb"
+                        file = File.open link, 'wb'
 
                         file.puts target
                         file.close
