@@ -86,3 +86,20 @@ describe 'Storage' do
         end
     end
 end
+
+describe 'Meta' do
+    describe 'duplicates' do
+        it 'finds meta directories with multiple files inside' do
+            Meta.duplicates.should == [ 'da39a3ee5e6b4b0d3255bfef95601890afd80709' ]
+        end
+    end
+
+    describe 'merge' do
+        it 'merges multiple files into one' do
+            duplicates = Meta.duplicates
+            duplicates.should == [ 'da39a3ee5e6b4b0d3255bfef95601890afd80709' ]
+            Meta.merge duplicates[0]
+            Meta.duplicates.should == []
+        end
+    end
+end
