@@ -241,8 +241,16 @@ class Meta
             end
         end
 
+        def duplicates
+            duplicates = []
 
+            Dir.entries(TRACKING, { :encoding => 'utf-8' }).each do |file|
+                next if [ '..', '.' ].include? file
 
+                duplicates << file unless Dir.entries("#{TRACKING}/#{file}", { :encoding => 'utf-8' }).size.eql? 3
+            end
 
+            duplicates
+        end
     end
 end
