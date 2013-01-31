@@ -139,7 +139,7 @@ class Storage
                     Storage.import entry, root
 
                     if (Dir.entries(entry) - [ '..', '.' ]).size.eql? 0
-                        FileUtils.rm entry
+                        FileUtils.rm_r entry
                     end
                 end
 
