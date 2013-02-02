@@ -122,6 +122,19 @@ end
 
 class Storage
     class << self
+        def hash path
+            hash = Digest::SHA1.new
+            file = File.open path, 'rb'
+
+            until file.eof?
+                buffer = file.readpartial 65536
+
+                hash.update buffer
+            end
+
+            hash.hexdigest
+        end
+
         def import directory = IMPORT, root = directory
             entries = Dir.entries(directory, { :encoding => 'utf-8' })
             total = entries.size - 2
@@ -144,33 +157,20 @@ class Storage
                 end
 
                 if File.file? entry
-                    hash = Digest::SHA1.new
-                    file = File.open entry, 'rb'
-                    target = Util.relative_path entry, root
+                    hash = Storage.hash entry
+                    name = Util.relative_path entry, root
 
-                    until file.eof?
-                        buffer = file.readpartial 65536
+                    Meta.create hash, name unless Meta.has? hash
+                    Tag.create hash, name
 
-                        hash.update buffer
-                    end
-
-                    file.close
-
-                    name = hash.hexdigest + Digest::SHA1.new.update(target).hexdigest
-                    link = "#{TRACKING}/#{name}"
-                    duplicate = false
-
-                    Meta.create name, target unless Meta.has? name
-                    Tag.create name, target
-
-                    if Storage.has? name
+                    if Storage.has? hash
                         File.delete entry
 
-                        puts "stored duplicate #{name} (#{target})"
+                        puts "stored duplicated #{hash} (#{name})"
                     else
-                        Storage.store name, entry
+                        Storage.store hash, entry
 
-                        puts "stored #{name} (#{target})"
+                        puts "stored #{hash} (#{name})"
                     end
                 end
             end
