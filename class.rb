@@ -200,20 +200,20 @@ class Meta
         def has? id
             result = true
             result = false unless Dir.exists? "#{TRACKING}/#{id[0...40]}"
-            result = false unless File.exists? "#{TRACKING}/#{id[0...40]}/#{id[40...80]}"
+            result = false unless File.exists? "#{TRACKING}/#{id[0...40]}/names"
             result
 
         end
 
         def create id, filename
             dirname = id[0...40]
-            basename = id[40...80]
+            basename = 'names'
 
             FileUtils.mkdir_p "#{TRACKING}/#{dirname}" unless Dir.exists? "#{TRACKING}/#{dirname}"
 
             raise DuplicateFileException if Meta.has? id
 
-            file = File.open "#{TRACKING}/#{dirname}/#{basename}", 'wb'
+            file = File.open "#{TRACKING}/#{dirname}/#{basename}", 'ab'
             file.puts filename
             file.close
         end
