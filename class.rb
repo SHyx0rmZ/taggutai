@@ -175,11 +175,6 @@ class Storage
                 end
             end
 
-            unless OPTIONS['nomerge']
-                Meta.duplicates.each do |dupe|
-                    Meta.merge dupe
-                end
-            end
         end
 
         def has? id
@@ -200,70 +195,22 @@ class Meta
         def has? id
             result = true
             result = false unless Dir.exists? "#{TRACKING}/#{id[0...40]}"
-            result = false unless File.exists? "#{TRACKING}/#{id[0...40]}/#{id[40...80]}"
+            result = false unless File.exists? "#{TRACKING}/#{id[0...40]}/names"
             result
 
         end
 
         def create id, filename
             dirname = id[0...40]
-            basename = id[40...80]
+            basename = 'names'
 
             FileUtils.mkdir_p "#{TRACKING}/#{dirname}" unless Dir.exists? "#{TRACKING}/#{dirname}"
 
             raise DuplicateFileException if Meta.has? id
 
-            file = File.open "#{TRACKING}/#{dirname}/#{basename}", 'wb'
+            file = File.open "#{TRACKING}/#{dirname}/#{basename}", 'ab'
             file.puts filename
             file.close
-        end
-
-        def merge id
-            hash = Digest::SHA1.new
-            names = []
-
-            raise FileNotFoundException unless Meta.has? id
-
-            Dir.entries("#{TRACKING}/#{id[0...40]}", { :encoding => 'utf-8' }).each do |entry|
-                next if [ '..', '.' ].include? entry
-
-                file = File.open "#{TRACKING}/#{id[0...40]}/#{entry}", 'rb'
-                names += file.lines.to_a
-                file.close
-            end
-
-            names.uniq!
-            names.sort!
-
-            names.each do |name|
-                hash.update name
-            end
-
-            file = File.open "#{TRACKING}/#{id[0...40]}/#{hash.hexdigest}", 'wb'
-
-            names.each do |name|
-                file.puts name
-            end
-
-            file.close
-
-            Dir.entries("#{TRACKING}/#{id[0...40]}", { :encoding => 'utf-8' }).each do |entry|
-                next if [ '..', '.', hash.hexdigest ].include? entry
-
-                FileUtils.rm "#{TRACKING}/#{id[0...40]}/#{entry}"
-            end
-        end
-
-        def duplicates
-            duplicates = []
-
-            Dir.entries(TRACKING, { :encoding => 'utf-8' }).each do |file|
-                next if [ '..', '.' ].include? file
-
-                duplicates << file unless Dir.entries("#{TRACKING}/#{file}", { :encoding => 'utf-8' }).size.eql? 3
-            end
-
-            duplicates
         end
     end
 end

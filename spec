@@ -71,8 +71,7 @@ describe 'Storage' do
             FileUtils.touch "#{IMPORT}/a"
             FileUtils.touch "#{IMPORT}/b"
             Storage.import
-            File.exists?("#{TRACKING}/da39a3ee5e6b4b0d3255bfef95601890afd80709/86f7e437faa5a7fce15d1ddcb9eaeaea377667b8").should == true
-            File.exists?("#{TRACKING}/da39a3ee5e6b4b0d3255bfef95601890afd80709/e9d71f5ee7c92d6dc9e92ffdad17b8bd49418f98").should == true
+            File.exists?("#{TRACKING}/da39a3ee5e6b4b0d3255bfef95601890afd80709/names").should == true
             File.exists?("#{STORAGE}/da39a3ee5e6b4b0d3255bfef95601890afd80709").should == true
         end
 
@@ -88,18 +87,4 @@ describe 'Storage' do
 end
 
 describe 'Meta' do
-    describe 'duplicates' do
-        it 'finds meta directories with multiple files inside' do
-            Meta.duplicates.should == [ 'da39a3ee5e6b4b0d3255bfef95601890afd80709' ]
-        end
-    end
-
-    describe 'merge' do
-        it 'merges multiple files into one' do
-            duplicates = Meta.duplicates
-            duplicates.should == [ 'da39a3ee5e6b4b0d3255bfef95601890afd80709' ]
-            Meta.merge duplicates[0]
-            Meta.duplicates.should == []
-        end
-    end
 end
