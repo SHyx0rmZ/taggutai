@@ -164,7 +164,7 @@ class Storage
                     Tag.create hash, name
 
                     if Storage.has? hash
-                        File.delete entry
+                        FileUtils.rm_f entry
 
                         puts "stored duplicated #{hash} (#{name})"
                     else
@@ -184,7 +184,15 @@ class Storage
         def store id, path
             raise DuplicateFileException if Storage.has? id
 
-            File.rename path, "#{STORAGE}/#{id[0...40]}"
+            if File.writable? path
+                File.rename path, "#{STORAGE}/#{id[0...40]}"
+            elsif File.readable? path
+                FileUtils.cp path, "#{STORAGE}/#{id[0...40]}"
+                FileUtils.rm_f path
+            else
+                raise Exception
+            end
+
             FileUtils.touch "#{TAGS}/untagged/#{id[0...40]}"
         end
     end
