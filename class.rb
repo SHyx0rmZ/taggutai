@@ -135,7 +135,7 @@ class Storage
             hash.hexdigest
         end
 
-        def import directory = IMPORT, root = directory
+        def import_symlinks directory, root
             entries = Dir.entries(directory, { :encoding => 'utf-8' })
             total = entries.size - 2
             index = 0
@@ -149,14 +149,62 @@ class Storage
                 printf "(%#{total.to_s.size}d/%d) ", index, total
 
                 if File.directory? entry
-                    Storage.import entry, root
+                    Storage.import_symlinks entry, root if File.executable? entry
+                elsif File.symlink? entry
+                    sym = entry
 
-                    if (Dir.entries(entry) - [ '..', '.' ]).size.eql? 0
-                        FileUtils.rm_r entry
+                    while File.symlink? sym and not File.directory? sym
+                        if File.readlink(sym).start_with? "/"
+                            sym = File.readlink sym
+                        else
+                            sym = "#{File.dirname sym}/#{File.readlink sym}"
+                        end
+
+                        sym = Util.clean_path sym
                     end
-                end
 
-                if File.file? entry
+                    Tag.create Storage.hash(sym), entry if File.exists? sym
+
+                    puts "folllowed symlink (#{Util.relative_path entry, root})"
+                end
+            end
+        end
+
+        def delete_symlinks directory, root
+            Dir.entries(directory, { :encoding => 'utf-8' }).each do |entry|
+                next if [ '..', '.' ].include? entry
+
+                entry = "#{directory}/#{entry}"
+
+                if File.symlink? entry
+                    FileUtils.rm_f entry
+                elsif File.directory? entry
+                    Storage.delete_symlinks entry, root if File.executable?
+
+                    FileUtils.rm_r entry if (Dir.entries(entry, { :encoding => 'utf-8' }) - [ '..', '.' ]).size.eql? 0
+                end
+            end
+        end
+
+
+        def import_files directory, root
+            entries = Dir.entries(directory, { :encoding => 'utf-8' })
+            total = entries.size - 2
+            index = 0
+
+            entries.each do |entry|
+                next if [ '..', '.' ].include? entry
+
+                index += 1
+                entry = "#{directory}/#{entry}"
+
+                printf "(%#{total.to_s.size}d/%d) ", index, total
+
+                if File.directory? entry
+                    Storage.import_files entry, root if File.executable? entry and not File.symlink? entry
+
+                    FileUtils.rm_r entry if (Dir.entries(entry, { :encoding => 'utf-8' }) - [ '..', '.' ]).size.eql? 0
+                elsif File.file? entry
                     hash = Storage.hash entry
                     name = Util.relative_path entry, root
 
@@ -174,7 +222,12 @@ class Storage
                     end
                 end
             end
+        end
 
+        def import directory = IMPORT, root = directory
+            import_symlinks directory, root
+            delete_symlinks directory, root
+            import_files directory, root
         end
 
         def has? id
