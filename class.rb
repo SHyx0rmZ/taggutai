@@ -25,6 +25,28 @@ end
 class FileNotFoundException < Exception
 end
 
+class Dir
+    class << self
+        def reduced_entries path
+            nil unless File.directory? path and File.executable? path and File.readable? path
+
+            Dir.entries(path, { :encoding => 'utf-8' }) - [ '..', '.' ]
+        end
+
+        def each_status_and_entry path
+            entries = Dir.reduced_entries path
+            total = entries.size
+            index = 0
+
+            entries.each do |entry|
+                next if [ '..', '.' ].include? entry
+
+                yield "(%#{total.to_s.size}d/%d)" % [ index += 1, total ], "#{path}/#{entry}"
+            end
+        end
+    end
+end
+
 class Util
     class << self
         def clean_path path
@@ -80,16 +102,14 @@ class Tag
         def getall directory = TAGS
             tags = []
 
-            Dir.entries(directory, { :encoding => 'utf-8' }).each do |entry|
-                next if [ '..', '.' ].include? entry
+            Dir.each_status_and_entry(directory) do |status, entry|
+                if File.directory? entry
+                    tags << Util.relative_path(entry, directory)
 
-                if File.directory? "#{directory}/#{entry}"
-                    tags << entry
-
-                    fixed = Tag.getall "#{directory}/#{entry}"
+                    fixed = Tag.getall entry
 
                     fixed.each do |fix|
-                        tags << "#{entry}/#{fix}"
+                        tags << "#{Util.relative_path entry, directory}/#{fix}"
                     end
                 end
             end
@@ -136,17 +156,8 @@ class Storage
         end
 
         def import_symlinks directory, root
-            entries = Dir.entries(directory, { :encoding => 'utf-8' })
-            total = entries.size - 2
-            index = 0
-
-            entries.each do |entry|
-                next if [ '..', '.' ].include? entry
-
-                index += 1
-                entry = "#{directory}/#{entry}"
-
-                printf "(%#{total.to_s.size}d/%d) ", index, total
+            Dir.each_status_and_entry(directory) do |status, entry|
+                print status
 
                 if File.directory? entry
                     Storage.import_symlinks entry, root if File.executable? entry
@@ -165,45 +176,32 @@ class Storage
 
                     Tag.create Storage.hash(sym), entry if File.exists? sym
 
-                    puts "folllowed symlink (#{Util.relative_path entry, root})"
+                    puts " folllowed symlink (#{Util.relative_path entry, root})"
                 end
             end
         end
 
         def delete_symlinks directory, root
-            Dir.entries(directory, { :encoding => 'utf-8' }).each do |entry|
-                next if [ '..', '.' ].include? entry
-
-                entry = "#{directory}/#{entry}"
-
+            Dir.each_status_and_entry(directory) do |status, entry|
                 if File.symlink? entry
                     FileUtils.rm_f entry
                 elsif File.directory? entry
                     Storage.delete_symlinks entry, root if File.executable? entry
 
-                    FileUtils.rm_r entry if File.executable? entry and (Dir.entries(entry, { :encoding => 'utf-8' }) - [ '..', '.' ]).size.eql? 0
+                    FileUtils.rm_r entry if File.executable? entry and Dir.reduced_entries(entry).size.eql? 0
                 end
             end
         end
 
 
         def import_files directory, root
-            entries = Dir.entries(directory, { :encoding => 'utf-8' })
-            total = entries.size - 2
-            index = 0
-
-            entries.each do |entry|
-                next if [ '..', '.' ].include? entry
-
-                index += 1
-                entry = "#{directory}/#{entry}"
-
-                printf "(%#{total.to_s.size}d/%d) ", index, total
+            Dir.each_status_and_entry(directory) do |status, entry|
+                print status
 
                 if File.directory? entry
                     Storage.import_files entry, root if File.executable? entry and not File.symlink? entry
 
-                    FileUtils.rm_r entry if File.executable? entry and (Dir.entries(entry, { :encoding => 'utf-8' }) - [ '..', '.' ]).size.eql? 0
+                    FileUtils.rm_r entry if File.executable? entry and Dir.reduced_entries(entry).size.eql? 0
                 elsif File.file? entry
                     hash = Storage.hash entry
                     name = Util.relative_path entry, root
@@ -214,11 +212,11 @@ class Storage
                     if Storage.has? hash
                         FileUtils.rm_f entry
 
-                        puts "stored duplicated #{hash} (#{name})"
+                        puts " stored duplicated #{hash} (#{name})"
                     else
                         Storage.store hash, entry
 
-                        puts "stored #{hash} (#{name})"
+                        puts " stored #{hash} (#{name})"
                     end
                 end
             end
@@ -233,8 +231,8 @@ class Storage
 
             true
 
-            unless File.executable? directory and (Dir.entries(directory, { :encoding => 'utf-8' }) - [ '..', '.' ]).size.eql? 0
-                puts 'Some files could not be imported'
+            unless File.executable? directory and Dir.reduced_entries(directory).size.eql? 0
+                puts ' Some files could not be imported'
 
                 false
             end
