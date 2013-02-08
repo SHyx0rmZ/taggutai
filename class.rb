@@ -179,9 +179,9 @@ class Storage
                 if File.symlink? entry
                     FileUtils.rm_f entry
                 elsif File.directory? entry
-                    Storage.delete_symlinks entry, root if File.executable?
+                    Storage.delete_symlinks entry, root if File.executable? entry
 
-                    FileUtils.rm_r entry if (Dir.entries(entry, { :encoding => 'utf-8' }) - [ '..', '.' ]).size.eql? 0
+                    FileUtils.rm_r entry if File.executable? entry and (Dir.entries(entry, { :encoding => 'utf-8' }) - [ '..', '.' ]).size.eql? 0
                 end
             end
         end
@@ -203,7 +203,7 @@ class Storage
                 if File.directory? entry
                     Storage.import_files entry, root if File.executable? entry and not File.symlink? entry
 
-                    FileUtils.rm_r entry if (Dir.entries(entry, { :encoding => 'utf-8' }) - [ '..', '.' ]).size.eql? 0
+                    FileUtils.rm_r entry if File.executable? entry and (Dir.entries(entry, { :encoding => 'utf-8' }) - [ '..', '.' ]).size.eql? 0
                 elsif File.file? entry
                     hash = Storage.hash entry
                     name = Util.relative_path entry, root
@@ -225,9 +225,19 @@ class Storage
         end
 
         def import directory = IMPORT, root = directory
-            import_symlinks directory, root
-            delete_symlinks directory, root
-            import_files directory, root
+            if File.executable? directory
+                import_symlinks directory, root
+                delete_symlinks directory, root
+                import_files directory, root
+            end
+
+            true
+
+            unless File.executable? directory and (Dir.entries(directory, { :encoding => 'utf-8' }) - [ '..', '.' ]).size.eql? 0
+                puts 'Some files could not be imported'
+
+                false
+            end
         end
 
         def has? id
