@@ -28,7 +28,7 @@ end
 class Dir
     class << self
         def reduced_entries path
-            nil unless File.directory? path and File.executable? path and File.readable? path
+            nil unless File.exists? path and File.directory? path and File.executable? path and File.readable? path
 
             Dir.entries(path, { :encoding => 'utf-8' }) - [ '..', '.' ]
         end
@@ -188,9 +188,14 @@ class Storage
                         sym = Util.clean_path sym
                     end
 
-                    Tag.create Storage.hash(sym), entry if File.exists? sym
+                    entry = Util.relative_path entry, root
 
-                    puts " folllowed symlink (#{Util.relative_path entry, root})"
+                    if File.exists? sym
+                        Meta.create Storage.hash(sym), entry
+                        Tag.create Storage.hash(sym), entry
+                    end
+
+                    puts " folllowed symlink (#{entry})"
                 end
             end
         end
@@ -220,7 +225,7 @@ class Storage
                     hash = Storage.hash entry
                     name = Util.relative_path entry, root
 
-                    Meta.create hash, name unless Meta.has? hash
+                    Meta.create hash, name
                     Tag.create hash, name
 
                     if Storage.has? hash
@@ -288,8 +293,6 @@ class Meta
             basename = 'names'
 
             FileUtils.mkdir_p "#{TRACKING}/#{dirname}" unless Dir.exists? "#{TRACKING}/#{dirname}"
-
-            raise DuplicateFileException if Meta.has? id
 
             file = File.open "#{TRACKING}/#{dirname}/#{basename}", 'ab'
             file.puts filename
