@@ -404,6 +404,136 @@ if __FILE__.eql? $0
         end
 
         puts Storage.hash ARGV[1]
+    when 'tag'
+        quit = false
+
+        until quit
+            puts "*** commands ***"
+            puts '  1: add      2: delete'
+            puts '  3: quit     4: list'
+            puts '  5: untagged 6: find'
+            print 'what now> '
+            line = $stdin.gets.chomp
+
+            case line
+            when /^(3|q)$/
+                quit = true
+            when /^(4|l)$/
+                tags = Tag.getall TAGS, false
+                back = false
+                root = TAGS
+
+                until back
+                    index = 0
+
+                    puts "/#{Util.clean_path Util.relative_path root, TAGS}"
+
+                    tags.each do |tag|
+                        puts "  #{"%#{tags.size.to_s.size}d" % index += 1}: #{tag}"
+                    end
+
+                    if tags.size.eql? 0
+                        puts '  no sub-tags'
+
+                        root = root[0...root.rindex('/')]
+                        tags = Tag.getall root, false
+
+                        next
+                    else
+                        print 'list> '
+                        line = $stdin.gets.chomp
+                    end
+
+                    case line
+                    when /^(\d+)$/
+                        index = $1.to_i - 1
+
+                        if index < tags.size
+                            root = "#{root}/#{tags[index]}"
+                            tags = Tag.getall root, false
+                        end
+                    when ''
+                        back = true if root.eql? TAGS
+
+                        root = root[0...root.rindex('/')]
+                        tags = Tag.getall root, false
+                    else
+                    end
+                end
+            when /^(5|u)$/
+                files = Tag.find 'taggutai/untagged'
+                current = 0
+
+                p Meta.names files[current]
+            when /^(6|f)$/
+                tags = Tag.getall TAGS, false
+                back = false
+                string = ''
+
+                until back
+                    print 'find> '
+                    string = $stdin.gets.chomp
+                    set = tags
+
+                    if string.start_with? '/'
+                        content = true
+                        string = string[1..-1]
+
+                        if string.start_with? '?'
+                            filetype = true
+                            string = string[1..-1]
+                        else
+                            filetype = false
+                        end
+                    else
+                        content = false
+                    end
+
+                    while string.include? '/'
+                        limit = Tag.limit set, "#{string[0...string.index('/')]}.*"
+                        string = string[string.index('/')+1..-1]
+                        string = '.*' if string.empty?
+                        sub = []
+
+                        limit.each do |tag|
+                            Tag.getall("#{TAGS}/#{tag}", false).each do |found|
+                                sub << "#{tag}/#{found}"
+                            end
+                        end
+
+                        set = sub.flatten
+                    end
+
+                    if string.empty?
+                        back = true
+
+                        next
+                    end
+
+                    limit = Tag.limit set, /#{string}.*$/
+
+                    unless content
+                        limit.each do |tag|
+                            puts "  #{tag}"
+                        end
+                    else
+                        limit.each do |tag|
+                            Tag.find(tag).each do |file|
+                                if filetype
+                                    print "#{file} "
+                                    puts %x[file -bi #{STORAGE}/#{file}]
+                                else
+                                    puts file
+                                #puts Meta.names file
+                                end
+                            end
+                        end
+                    end
+                end
+            else
+                puts "huh (#{line})?"
+            end
+        end
     else
         puts "taggutai import [<directory>]"
         puts "taggutai find <file>"
