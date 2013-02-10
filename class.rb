@@ -324,5 +324,13 @@ class Meta
             file.puts filename
             file.close
         end
+
+        def merge id
+            [ 'names', 'tags' ].each do |group|
+                items = File.readlines "#{TRACKING}/#{id[0...40]}/#{group}"
+
+                File.write "#{TRACKING}/#{id[0...40]}/#{group}", items.sort.uniq.join
+            end
+        end
     end
 end
