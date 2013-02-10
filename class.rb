@@ -197,6 +197,8 @@ class Storage
                 hash.update buffer
             end
 
+            file.close
+
             hash.hexdigest
         end
 
