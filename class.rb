@@ -12,7 +12,10 @@ path = "#{PWD}/config.yml"
 config = YAML::load_file path
 config[:paths] = {} unless config[:paths]
 
-WORKING = (config['paths']['working'] or Dir.pwd)
+working = (config['paths']['working'] or PWD)
+working = "#{PWD}/#{working}" unless working.start_with? '/'
+
+WORKING = working
 STORAGE = "#{WORKING}/" + (config['paths']['storage'] or 'storage')
 TAGS = "#{WORKING}/" + (config['paths']['tags'] or 'tags')
 TRACKING = "#{WORKING}/" + (config['paths']['tracking'] or 'meta')
