@@ -5,17 +5,24 @@ require 'yaml'
 require 'digest/sha1'
 require 'fileutils'
 
-path = (ARGV[0] and File.exists?(ARGV[0])) ? ARGV[0] : 'config.yml'
+PWD = File.dirname File.realpath __FILE__
+
+path = "#{PWD}/config.yml"
 
 config = YAML::load_file path
 config[:paths] = {} unless config[:paths]
 
-WORKING = (config['paths']['working'] or Dir.pwd)
+working = (config['paths']['working'] or PWD)
+working = "#{PWD}/#{working}" unless working.start_with? '/' or working[/^[A-Z]:/]
+
+WORKING = working
 STORAGE = "#{WORKING}/" + (config['paths']['storage'] or 'storage')
 TAGS = "#{WORKING}/" + (config['paths']['tags'] or 'tags')
 TRACKING = "#{WORKING}/" + (config['paths']['tracking'] or 'meta')
 IMPORT = "#{WORKING}/" + (config['paths']['import'] or 'import')
 OPTIONS = (config['options'] or {})
+
+$DESTRUCTIVE = false
 
 FileUtils.mkdir_p [ STORAGE, TAGS, TRACKING, IMPORT, "#{TAGS}/taggutai/untagged", "#{TAGS}/taggutai/unmerged" ]
 
@@ -42,6 +49,12 @@ class Dir
                 next if [ '..', '.' ].include? entry
 
                 yield "(%#{total.to_s.size}d/%d)" % [ index += 1, total ], "#{path}/#{entry}"
+            end
+        end
+
+        def empty? path
+            !Dir.enum_for(:foreach, path).any? do |entry|
+                /\A\.\.?\z/ !~ entry
             end
         end
     end
@@ -91,22 +104,26 @@ class Util
                 end
             end
 
-            path.shift difference
-            path.join '/'
+            if difference.eql? 0 and path[0].eql? root[0]
+                '.'
+            else
+                path.shift difference
+                path.join '/'
+            end
         end
     end
 end
 
 class Tag
     class << self
-        def getall directory = TAGS
+        def getall directory = TAGS, recurse = true
             tags = []
 
             Dir.each_status_and_entry(directory) do |status, entry|
                 if File.directory? entry
                     tags << Util.relative_path(entry, directory)
 
-                    fixed = Tag.getall entry
+                    fixed = recurse ? Tag.getall(entry) : []
 
                     fixed.each do |fix|
                         tags << "#{Util.relative_path entry, directory}/#{fix}"
@@ -149,7 +166,7 @@ class Tag
 
             File.write "#{TRACKING}/#{id[0...40]}/tags", tags.join
             FileUtils.rm "#{TAGS}/#{tag}/#{id[0...40]}"
-            FileUtils.rm_r "#{TAGS}/#{tag}" if Dir.reduced_entries("#{TAGS}/#{tag}").size.eql? 0
+            FileUtils.rm_r "#{TAGS}/#{tag}" if Dir.empty? "#{TAGS}/#{tag}"
         end
 
         def list id
@@ -159,7 +176,7 @@ class Tag
                 file = File.open "#{TRACKING}/#{id[0...40]}/tags", 'rb'
 
                 file.lines.each do |line|
-                    tags << line[0...-1]
+                    tags << line.chomp
                 end
 
                 file.close
@@ -172,7 +189,7 @@ class Tag
             files = []
 
             Dir.each_status_and_entry("#{TAGS}/#{tag}") do |status, entry|
-                files << File.basename(entry)
+                files << File.basename(entry) if File.file? entry
             end
 
             files
@@ -220,7 +237,6 @@ class Storage
 
                     if File.exists? sym
                         Meta.create Storage.hash(sym), entry
-                        Tag.create Storage.hash(sym), entry
                         Tag.create Storage.hash(sym), 'taggutai/unmerged'
                     end
 
@@ -230,13 +246,15 @@ class Storage
         end
 
         def delete_symlinks directory, root
+            return unless $DESTRUCTIVE
+
             Dir.each_status_and_entry(directory) do |status, entry|
                 if File.symlink? entry
                     FileUtils.rm_f entry
                 elsif File.directory? entry
                     Storage.delete_symlinks entry, root if File.executable? entry
 
-                    FileUtils.rm_r entry if File.executable? entry and Dir.reduced_entries(entry).size.eql? 0
+                    FileUtils.rm_r entry if File.executable? entry and Dir.empty? entry
                 end
             end
         end
@@ -246,20 +264,17 @@ class Storage
             Dir.each_status_and_entry(directory) do |status, entry|
                 print status
 
-                if File.directory? entry
-                    Storage.import_files entry, root if File.executable? entry and not File.symlink? entry
+                next if File.symlink? entry
 
-                    FileUtils.rm_r entry if File.executable? entry and Dir.reduced_entries(entry).size.eql? 0
-                elsif File.file? entry
+                if File.file? entry
                     hash = Storage.hash entry
                     name = Util.relative_path entry, root
 
                     Meta.create hash, name
-                    Tag.create hash, name
                     Tag.create hash, 'taggutai/unmerged'
 
                     if Storage.has? hash
-                        FileUtils.rm_f entry
+                        FileUtils.rm_f entry if $DESTRUCTIVE
 
                         puts " stored duplicated #{hash} (#{name})"
                     else
@@ -267,11 +282,17 @@ class Storage
 
                         puts " stored #{hash} (#{name})"
                     end
+                elsif File.directory? entry
+                    Storage.import_files entry, root if File.executable? entry and not File.symlink? entry
+
+                    FileUtils.rm_r entry if $DESTRUCTIVE and File.executable? entry and Dir.empty? entry
                 end
             end
         end
 
         def import directory = IMPORT, root = directory
+            $DESTRUCTIVE = File.realpath(directory).eql?(IMPORT) ? true : false
+
             if File.executable? directory
                 import_symlinks directory, root
                 delete_symlinks directory, root
@@ -284,7 +305,7 @@ class Storage
 
             true
 
-            unless File.executable? directory and Dir.reduced_entries(directory).size.eql? 0
+            unless (File.executable? directory and Dir.empty? directory) or not $DESTRUCTIVE
                 puts ' Some files could not be imported'
 
                 false
@@ -298,11 +319,11 @@ class Storage
         def store id, path
             raise DuplicateFileException if Storage.has? id
 
-            if File.writable? path
-                File.rename path, "#{STORAGE}/#{id[0...40]}"
+            if File.writable? path and $DESTRUCTIVE
+                FileUtils.mv path, "#{STORAGE}/#{id[0...40]}"
             elsif File.readable? path
                 FileUtils.cp path, "#{STORAGE}/#{id[0...40]}"
-                FileUtils.rm_f path
+                FileUtils.rm_f path if $DESTRUCTIVE
             else
                 raise Exception
             end
@@ -342,5 +363,200 @@ class Meta
 
             Tag.delete id, 'taggutai/unmerged'
         end
+
+        def names id
+            names = []
+            file = File.open "#{TRACKING}/#{id[0...40]}/names", 'rb'
+
+            file.lines.each do |line|
+                names << line.chomp
+            end
+
+            file.close
+
+            names
+        end
+    end
+end
+
+if __FILE__.eql? $0
+    case ARGV[0]
+    when 'import'
+        if ARGV[1]
+            unless Dir.exists? ARGV[1]
+                $stderr.puts 'not a valid directory to import'
+
+                exit 1
+            end
+
+            Storage.import ARGV[1]
+        else
+            Storage.import
+        end
+    when 'find'
+        unless ARGV[1] and File.exists? ARGV[1] and File.file? ARGV[1]
+            $stderr.puts 'please specify a file to search for in storage'
+
+            exit 1
+        end
+
+        hash = Storage.hash ARGV[1]
+
+        if Storage.has? hash
+
+            tags = Tag.list hash
+
+            $stderr.puts 'file exists in storage but there are no associated tags' if tags.eql? 0
+
+            tags.each do |tag|
+                puts tag
+            end
+        else
+            $stderr.puts 'file does not exist in storage'
+
+            exit 1
+        end
+    when 'hash'
+        unless ARGV[1] and File.exists? ARGV[1] and File.file? ARGV[1]
+            $stderr.puts 'please specify a file to hash'
+
+            exit 1
+        end
+
+        puts Storage.hash ARGV[1]
+    when 'tag'
+        quit = false
+
+        until quit
+            puts "*** commands ***"
+            puts '  1: add      2: delete'
+            puts '  3: quit     4: list'
+            puts '  5: untagged 6: find'
+            print 'what now> '
+            line = $stdin.gets.chomp
+
+            case line
+            when /^(3|q)$/
+                quit = true
+            when /^(4|l)$/
+                tags = Tag.getall TAGS, false
+                back = false
+                root = TAGS
+
+                until back
+                    index = 0
+
+                    puts "/#{Util.clean_path Util.relative_path root, TAGS}"
+
+                    tags.each do |tag|
+                        puts "  #{"%#{tags.size.to_s.size}d" % index += 1}: #{tag}"
+                    end
+
+                    if tags.size.eql? 0
+                        puts '  no sub-tags'
+
+                        root = root[0...root.rindex('/')]
+                        tags = Tag.getall root, false
+
+                        next
+                    else
+                        print 'list> '
+                        line = $stdin.gets.chomp
+                    end
+
+                    case line
+                    when /^(\d+)$/
+                        index = $1.to_i - 1
+
+                        if index < tags.size
+                            root = "#{root}/#{tags[index]}"
+                            tags = Tag.getall root, false
+                        end
+                    when ''
+                        back = true if root.eql? TAGS
+
+                        root = root[0...root.rindex('/')]
+                        tags = Tag.getall root, false
+                    else
+                    end
+                end
+            when /^(5|u)$/
+                files = Tag.find 'taggutai/untagged'
+                current = 0
+
+                p Meta.names files[current]
+            when /^(6|f)$/
+                tags = Tag.getall TAGS, false
+                back = false
+                string = ''
+
+                until back
+                    print 'find> '
+                    string = $stdin.gets.chomp
+                    set = tags
+
+                    if string.start_with? '/'
+                        content = true
+                        string = string[1..-1]
+
+                        if string.start_with? '?'
+                            filetype = true
+                            string = string[1..-1]
+                        else
+                            filetype = false
+                        end
+                    else
+                        content = false
+                    end
+
+                    while string.include? '/'
+                        limit = Tag.limit set, "#{string[0...string.index('/')]}.*"
+                        string = string[string.index('/')+1..-1]
+                        string = '.*' if string.empty?
+                        sub = []
+
+                        limit.each do |tag|
+                            Tag.getall("#{TAGS}/#{tag}", false).each do |found|
+                                sub << "#{tag}/#{found}"
+                            end
+                        end
+
+                        set = sub.flatten
+                    end
+
+                    if string.empty?
+                        back = true
+
+                        next
+                    end
+
+                    limit = Tag.limit set, /#{string}.*$/
+
+                    unless content
+                        limit.each do |tag|
+                            puts "  #{tag}"
+                        end
+                    else
+                        limit.each do |tag|
+                            Tag.find(tag).each do |file|
+                                if filetype
+                                    print "#{file} "
+                                    puts %x[file -bi #{STORAGE}/#{file}]
+                                else
+                                    puts file
+                                #puts Meta.names file
+                                end
+                            end
+                        end
+                    end
+                end
+            else
+                puts "huh (#{line})?"
+            end
+        end
+    else
+        puts "taggutai import [<directory>]"
+        puts "taggutai find <file>"
+        puts "taggutai hash <file>"
     end
 end
