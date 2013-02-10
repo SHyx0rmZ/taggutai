@@ -347,3 +347,49 @@ class Meta
         end
     end
 end
+
+if __FILE__.eql? $0
+    case ARGV[0]
+    when 'import'
+        if ARGV[1] and Dir.exists? ARGV[1]
+            FileUtils.cp_r ARGV[1], IMPORT
+        end
+
+        Storage.import
+    when 'find'
+        unless ARGV[1] and File.exists? ARGV[1] and File.file? ARGV[1]
+            $stderr.puts 'please specify a file to search for in storage'
+
+            exit 1
+        end
+
+        hash = Storage.hash ARGV[1]
+
+        if Storage.has? hash
+
+            tags = Tag.list hash
+
+            $stderr.puts 'file exists in storage but there are no associated tags' if tags.eql? 0
+
+            tags.each do |tag|
+                puts tag
+            end
+        else
+            $stderr.puts 'file does not exist in storage'
+
+            exit 1
+        end
+    when 'hash'
+        unless ARGV[1] and File.exists? ARGV[1] and File.file? ARGV[1]
+            $stderr.puts 'please specify a file to hash'
+
+            exit 1
+        end
+
+        puts Storage.hash ARGV[1]
+    else
+        puts "taggutai import [<directory>]"
+        puts "taggutai find <file>"
+        puts "taggutai hash <file>"
+    end
+end
