@@ -17,7 +17,7 @@ TRACKING = "#{WORKING}/" + (config['paths']['tracking'] or 'meta')
 IMPORT = "#{WORKING}/" + (config['paths']['import'] or 'import')
 OPTIONS = (config['options'] or {})
 
-FileUtils.mkdir_p [ STORAGE, TAGS, TRACKING, IMPORT, "#{TAGS}/taggutai/untagged" ]
+FileUtils.mkdir_p [ STORAGE, TAGS, TRACKING, IMPORT, "#{TAGS}/taggutai/untagged", "#{TAGS}/taggutai/unmerged" ]
 
 class DuplicateFileException < Exception
 end
@@ -219,6 +219,7 @@ class Storage
                     if File.exists? sym
                         Meta.create Storage.hash(sym), entry
                         Tag.create Storage.hash(sym), entry
+                        Tag.create Storage.hash(sym), 'taggutai/unmerged'
                     end
 
                     puts " folllowed symlink (#{entry})"
@@ -253,6 +254,7 @@ class Storage
 
                     Meta.create hash, name
                     Tag.create hash, name
+                    Tag.create hash, 'taggutai/unmerged'
 
                     if Storage.has? hash
                         FileUtils.rm_f entry
@@ -272,6 +274,10 @@ class Storage
                 import_symlinks directory, root
                 delete_symlinks directory, root
                 import_files directory, root
+
+                Tag.find("taggutai/unmerged").each do |id|
+                    Meta.merge id
+                end
             end
 
             true
@@ -323,6 +329,16 @@ class Meta
             file = File.open "#{TRACKING}/#{dirname}/#{basename}", 'ab'
             file.puts filename
             file.close
+        end
+
+        def merge id
+            [ 'names', 'tags' ].each do |group|
+                items = File.readlines "#{TRACKING}/#{id[0...40]}/#{group}"
+
+                File.write "#{TRACKING}/#{id[0...40]}/#{group}", items.sort.uniq.join
+            end
+
+            Tag.delete id, 'taggutai/unmerged'
         end
     end
 end
