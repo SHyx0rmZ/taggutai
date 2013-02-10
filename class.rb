@@ -17,7 +17,7 @@ TRACKING = "#{WORKING}/" + (config['paths']['tracking'] or 'meta')
 IMPORT = "#{WORKING}/" + (config['paths']['import'] or 'import')
 OPTIONS = (config['options'] or {})
 
-FileUtils.mkdir_p [ STORAGE, TAGS, TRACKING, IMPORT, "#{TAGS}/untagged" ]
+FileUtils.mkdir_p [ STORAGE, TAGS, TRACKING, IMPORT, "#{TAGS}/taggutai/untagged" ]
 
 class DuplicateFileException < Exception
 end
@@ -254,7 +254,7 @@ class Storage
                 raise Exception
             end
 
-            FileUtils.touch "#{TAGS}/untagged/#{id[0...40]}"
+            Tag.create id[0...40], 'taggutai/untagged'
         end
     end
 end
