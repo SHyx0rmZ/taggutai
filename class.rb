@@ -181,7 +181,7 @@ class Tag
             files = []
 
             Dir.each_status_and_entry("#{TAGS}/#{tag}") do |status, entry|
-                files << File.basename(entry)
+                files << File.basename(entry) if File.file? entry
             end
 
             files
