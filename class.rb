@@ -211,7 +211,7 @@ class Storage
                     hash = Storage.hash entry
                     name = Util.relative_path entry, root
 
-                    Meta.create hash, name unless Meta.has? hash
+                    Meta.create hash, name
                     Tag.create hash, name
 
                     if Storage.has? hash
