@@ -302,7 +302,7 @@ class Storage
             raise DuplicateFileException if Storage.has? id
 
             if File.writable? path
-                File.rename path, "#{STORAGE}/#{id[0...40]}"
+                FileUtils.mv path, "#{STORAGE}/#{id[0...40]}"
             elsif File.readable? path
                 FileUtils.cp path, "#{STORAGE}/#{id[0...40]}"
                 FileUtils.rm_f path
