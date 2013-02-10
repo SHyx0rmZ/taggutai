@@ -104,14 +104,14 @@ end
 
 class Tag
     class << self
-        def getall directory = TAGS
+        def getall directory = TAGS, recurse = true
             tags = []
 
             Dir.each_status_and_entry(directory) do |status, entry|
                 if File.directory? entry
                     tags << Util.relative_path(entry, directory)
 
-                    fixed = Tag.getall entry
+                    fixed = recurse ? Tag.getall(entry) : []
 
                     fixed.each do |fix|
                         tags << "#{Util.relative_path entry, directory}/#{fix}"
