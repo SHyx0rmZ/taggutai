@@ -62,8 +62,9 @@ end
 
 describe 'Storage' do
     before :each do
-            Storage.stub! :puts
-            Storage.stub! :printf
+        Storage.stub! :puts
+        Storage.stub! :printf
+        Storage.stub! :print
     end
 
     describe 'import' do
