@@ -49,6 +49,12 @@ class Dir
                 yield "(%#{total.to_s.size}d/%d)" % [ index += 1, total ], "#{path}/#{entry}"
             end
         end
+
+        def empty? path
+            !Dir.enum_for(:foreach, path).any? do |entry|
+                /\A\.\.?\z/ !~ entry
+            end
+        end
     end
 end
 
@@ -158,7 +164,7 @@ class Tag
 
             File.write "#{TRACKING}/#{id[0...40]}/tags", tags.join
             FileUtils.rm "#{TAGS}/#{tag}/#{id[0...40]}"
-            FileUtils.rm_r "#{TAGS}/#{tag}" if Dir.reduced_entries("#{TAGS}/#{tag}").size.eql? 0
+            FileUtils.rm_r "#{TAGS}/#{tag}" if Dir.empty? "#{TAGS}/#{tag}"
         end
 
         def list id
@@ -244,7 +250,7 @@ class Storage
                 elsif File.directory? entry
                     Storage.delete_symlinks entry, root if File.executable? entry
 
-                    FileUtils.rm_r entry if File.executable? entry and Dir.reduced_entries(entry).size.eql? 0
+                    FileUtils.rm_r entry if File.executable? entry and Dir.empty? entry
                 end
             end
         end
@@ -257,7 +263,7 @@ class Storage
                 if File.directory? entry
                     Storage.import_files entry, root if File.executable? entry and not File.symlink? entry
 
-                    FileUtils.rm_r entry if File.executable? entry and Dir.reduced_entries(entry).size.eql? 0
+                    FileUtils.rm_r entry if File.executable? entry and Dir.empty? entry
                 elsif File.file? entry
                     hash = Storage.hash entry
                     name = Util.relative_path entry, root
@@ -291,7 +297,7 @@ class Storage
 
             true
 
-            unless File.executable? directory and Dir.reduced_entries(directory).size.eql? 0
+            unless File.executable? directory and Dir.empty? directory
                 puts ' Some files could not be imported'
 
                 false
