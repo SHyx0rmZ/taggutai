@@ -280,8 +280,6 @@ class Meta
 
             FileUtils.mkdir_p "#{TRACKING}/#{dirname}" unless Dir.exists? "#{TRACKING}/#{dirname}"
 
-            raise DuplicateFileException if Meta.has? id
-
             file = File.open "#{TRACKING}/#{dirname}/#{basename}", 'ab'
             file.puts filename
             file.close
