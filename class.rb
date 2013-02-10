@@ -5,7 +5,9 @@ require 'yaml'
 require 'digest/sha1'
 require 'fileutils'
 
-path = (ARGV[0] and File.exists?(ARGV[0])) ? ARGV[0] : 'config.yml'
+PWD = File.dirname File.realpath __FILE__
+
+path = "#{PWD}/config.yml"
 
 config = YAML::load_file path
 config[:paths] = {} unless config[:paths]
