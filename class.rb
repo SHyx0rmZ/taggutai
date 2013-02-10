@@ -167,6 +167,16 @@ class Tag
 
             tags
         end
+
+        def find tag
+            files = []
+
+            Dir.each_status_and_entry("#{TAGS}/#{tag}") do |status, entry|
+                files << File.basename(entry)
+            end
+
+            files
+        end
     end
 end
 
