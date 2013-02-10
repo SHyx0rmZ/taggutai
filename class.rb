@@ -22,6 +22,8 @@ TRACKING = "#{WORKING}/" + (config['paths']['tracking'] or 'meta')
 IMPORT = "#{WORKING}/" + (config['paths']['import'] or 'import')
 OPTIONS = (config['options'] or {})
 
+$DESTRUCTIVE = false
+
 FileUtils.mkdir_p [ STORAGE, TAGS, TRACKING, IMPORT, "#{TAGS}/taggutai/untagged", "#{TAGS}/taggutai/unmerged" ]
 
 class DuplicateFileException < Exception
@@ -244,6 +246,8 @@ class Storage
         end
 
         def delete_symlinks directory, root
+            return unless $DESTRUCTIVE
+
             Dir.each_status_and_entry(directory) do |status, entry|
                 if File.symlink? entry
                     FileUtils.rm_f entry
@@ -260,11 +264,9 @@ class Storage
             Dir.each_status_and_entry(directory) do |status, entry|
                 print status
 
-                if File.directory? entry
-                    Storage.import_files entry, root if File.executable? entry and not File.symlink? entry
+                next if File.symlink? entry
 
-                    FileUtils.rm_r entry if File.executable? entry and Dir.empty? entry
-                elsif File.file? entry
+                if File.file? entry
                     hash = Storage.hash entry
                     name = Util.relative_path entry, root
 
@@ -272,7 +274,7 @@ class Storage
                     Tag.create hash, 'taggutai/unmerged'
 
                     if Storage.has? hash
-                        FileUtils.rm_f entry
+                        FileUtils.rm_f entry if $DESTRUCTIVE
 
                         puts " stored duplicated #{hash} (#{name})"
                     else
@@ -280,11 +282,17 @@ class Storage
 
                         puts " stored #{hash} (#{name})"
                     end
+                elsif File.directory? entry
+                    Storage.import_files entry, root if File.executable? entry and not File.symlink? entry
+
+                    FileUtils.rm_r entry if $DESTRUCTIVE and File.executable? entry and Dir.empty? entry
                 end
             end
         end
 
         def import directory = IMPORT, root = directory
+            $DESTRUCTIVE = File.realpath(directory).eql?(IMPORT) ? true : false
+
             if File.executable? directory
                 import_symlinks directory, root
                 delete_symlinks directory, root
@@ -297,7 +305,7 @@ class Storage
 
             true
 
-            unless File.executable? directory and Dir.empty? directory
+            unless (File.executable? directory and Dir.empty? directory) or not $DESTRUCTIVE
                 puts ' Some files could not be imported'
 
                 false
@@ -311,11 +319,11 @@ class Storage
         def store id, path
             raise DuplicateFileException if Storage.has? id
 
-            if File.writable? path
+            if File.writable? path and $DESTRUCTIVE
                 FileUtils.mv path, "#{STORAGE}/#{id[0...40]}"
             elsif File.readable? path
                 FileUtils.cp path, "#{STORAGE}/#{id[0...40]}"
-                FileUtils.rm_f path
+                FileUtils.rm_f path if $DESTRUCTIVE
             else
                 raise Exception
             end
@@ -374,11 +382,17 @@ end
 if __FILE__.eql? $0
     case ARGV[0]
     when 'import'
-        if ARGV[1] and Dir.exists? ARGV[1]
-            FileUtils.cp_r ARGV[1], IMPORT
-        end
+        if ARGV[1]
+            unless Dir.exists? ARGV[1]
+                $stderr.puts 'not a valid directory to import'
 
-        Storage.import
+                exit 1
+            end
+
+            Storage.import ARGV[1]
+        else
+            Storage.import
+        end
     when 'find'
         unless ARGV[1] and File.exists? ARGV[1] and File.file? ARGV[1]
             $stderr.puts 'please specify a file to search for in storage'
