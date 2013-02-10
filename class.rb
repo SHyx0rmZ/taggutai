@@ -135,7 +135,47 @@ class Tag
 
         def create id, tag
             FileUtils.mkdir_p "#{TAGS}/#{tag}"
+            FileUtils.mkdir_p "#{TRACKING}/#{id[0...40]}"
             FileUtils.touch "#{TAGS}/#{tag}/#{id[0...40]}"
+
+            file = File.open "#{TRACKING}/#{id[0...40]}/tags", 'ab'
+            file.puts tag
+            file.close
+        end
+
+        def delete id, tag
+            tags = File.readlines "#{TRACKING}/#{id[0...40]}/tags"
+            tags.delete tag + '\n'
+
+            File.write "#{TRACKING}/#{id[0...40]}/tags", tags.join
+            FileUtils.rm "#{TAGS}/#{tag}/#{id[0...40]}"
+            FileUtils.rm_r "#{TAGS}/#{tag}" if Dir.reduced_entries("#{TAGS}/#{tag}").size.eql? 0
+        end
+
+        def list id
+            tags = []
+
+            if File.exists? "#{TRACKING}/#{id[0...40]}/tags"
+                file = File.open "#{TRACKING}/#{id[0...40]}/tags", 'rb'
+
+                file.lines.each do |line|
+                    tags << line[0...-1]
+                end
+
+                file.close
+            end
+
+            tags
+        end
+
+        def find tag
+            files = []
+
+            Dir.each_status_and_entry("#{TAGS}/#{tag}") do |status, entry|
+                files << File.basename(entry)
+            end
+
+            files
         end
     end
 end
