@@ -96,8 +96,12 @@ class Util
                 end
             end
 
-            path.shift difference
-            path.join '/'
+            if difference.eql? 0 and path[0].eql? root[0]
+                '.'
+            else
+                path.shift difference
+                path.join '/'
+            end
         end
     end
 end
