@@ -28,7 +28,7 @@ end
 class Dir
     class << self
         def reduced_entries path
-            nil unless File.directory? path and File.executable? path and File.readable? path
+            nil unless File.exists? path and File.directory? path and File.executable? path and File.readable? path
 
             Dir.entries(path, { :encoding => 'utf-8' }) - [ '..', '.' ]
         end
