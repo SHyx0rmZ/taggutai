@@ -142,6 +142,15 @@ class Tag
             file.puts tag
             file.close
         end
+
+        def delete id, tag
+            tags = File.readlines "#{TRACKING}/#{id[0...40]}/tags"
+            tags.delete tag + '\n'
+
+            File.write "#{TRACKING}/#{id[0...40]}/tags", tags.join
+            FileUtils.rm "#{TAGS}/#{tag}/#{id[0...40]}"
+            FileUtils.rm_r "#{TAGS}/#{tag}" if Dir.reduced_entries("#{TAGS}/#{tag}").size.eql? 0
+        end
     end
 end
 
