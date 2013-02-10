@@ -349,6 +349,19 @@ class Meta
 
             Tag.delete id, 'taggutai/unmerged'
         end
+
+        def names id
+            names = []
+            file = File.open "#{TRACKING}/#{id[0...40]}/names", 'rb'
+
+            file.lines.each do |line|
+                names << line.chomp
+            end
+
+            file.close
+
+            names
+        end
     end
 end
 
