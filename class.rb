@@ -174,9 +174,14 @@ class Storage
                         sym = Util.clean_path sym
                     end
 
-                    Tag.create Storage.hash(sym), entry if File.exists? sym
+                    entry = Util.relative_path entry, root
 
-                    puts " folllowed symlink (#{Util.relative_path entry, root})"
+                    if File.exists? sym
+                        Meta.create Storage.hash(sym), entry
+                        Tag.create Storage.hash(sym), entry
+                    end
+
+                    puts " folllowed symlink (#{entry})"
                 end
             end
         end
@@ -206,7 +211,7 @@ class Storage
                     hash = Storage.hash entry
                     name = Util.relative_path entry, root
 
-                    Meta.create hash, name unless Meta.has? hash
+                    Meta.create hash, name
                     Tag.create hash, name
 
                     if Storage.has? hash
