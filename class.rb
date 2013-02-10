@@ -135,7 +135,12 @@ class Tag
 
         def create id, tag
             FileUtils.mkdir_p "#{TAGS}/#{tag}"
+            FileUtils.mkdir_p "#{TRACKING}/#{id[0...40]}"
             FileUtils.touch "#{TAGS}/#{tag}/#{id[0...40]}"
+
+            file = File.open "#{TRACKING}/#{id[0...40]}/tags", 'ab'
+            file.puts tag
+            file.close
         end
     end
 end
