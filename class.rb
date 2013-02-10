@@ -13,7 +13,7 @@ config = YAML::load_file path
 config[:paths] = {} unless config[:paths]
 
 working = (config['paths']['working'] or PWD)
-working = "#{PWD}/#{working}" unless working.start_with? '/'
+working = "#{PWD}/#{working}" unless working.start_with? '/' or working[/^[A-Z]:/]
 
 WORKING = working
 STORAGE = "#{WORKING}/" + (config['paths']['storage'] or 'storage')
