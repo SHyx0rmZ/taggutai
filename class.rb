@@ -229,7 +229,6 @@ class Storage
 
                     if File.exists? sym
                         Meta.create Storage.hash(sym), entry
-                        Tag.create Storage.hash(sym), entry
                         Tag.create Storage.hash(sym), 'taggutai/unmerged'
                     end
 
@@ -264,7 +263,6 @@ class Storage
                     name = Util.relative_path entry, root
 
                     Meta.create hash, name
-                    Tag.create hash, name
                     Tag.create hash, 'taggutai/unmerged'
 
                     if Storage.has? hash
