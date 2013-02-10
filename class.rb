@@ -164,7 +164,7 @@ class Tag
                 file = File.open "#{TRACKING}/#{id[0...40]}/tags", 'rb'
 
                 file.lines.each do |line|
-                    tags << line[0...-1]
+                    tags << line.chomp
                 end
 
                 file.close
