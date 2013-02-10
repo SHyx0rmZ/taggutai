@@ -151,6 +151,22 @@ class Tag
             FileUtils.rm "#{TAGS}/#{tag}/#{id[0...40]}"
             FileUtils.rm_r "#{TAGS}/#{tag}" if Dir.reduced_entries("#{TAGS}/#{tag}").size.eql? 0
         end
+
+        def list id
+            tags = []
+
+            if File.exists? "#{TRACKING}/#{id[0...40]}/tags"
+                file = File.open "#{TRACKING}/#{id[0...40]}/tags", 'rb'
+
+                file.lines.each do |line|
+                    tags << line[0...-1]
+                end
+
+                file.close
+            end
+
+            tags
+        end
     end
 end
 
