@@ -544,7 +544,6 @@ if __FILE__.eql? $0
                                     puts %x[file -bi #{STORAGE}/#{file}]
                                 else
                                     puts file
-                                #puts Meta.names file
                                 end
                             end
                         end
