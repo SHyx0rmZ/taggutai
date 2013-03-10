@@ -5,6 +5,6 @@ taggutai is a file management suite composed of server and client infrastructure
 
 client
 ------
-  class.rb import [<directory>]
-  class.rb find <file>
-  class.rb hash <file>
+```class.rb import [<directory>]
+class.rb find <file>
+class.rb hash <file>```
